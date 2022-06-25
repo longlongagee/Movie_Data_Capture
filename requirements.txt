@@ -1,0 +1,11 @@
+requests
+lxml
+beautifulsoup4
+pillow
+cloudscraper
+pysocks
+urllib3
+certifi
+MechanicalSoup
+opencc-python-reimplemented
+face_recognition
