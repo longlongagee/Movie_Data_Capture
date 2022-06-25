@@ -9,3 +9,6 @@ certifi
 MechanicalSoup
 opencc-python-reimplemented
 face_recognition
+# pip install cmake
+# https://pypi.org/simple/dlib/
+# pip install face_recognition -i https://pypi.douban.com/simple

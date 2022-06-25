@@ -29,6 +29,7 @@ def getXpathSingle(htmlcode, xpath):
 
 G_USER_AGENT = r'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.133 Safari/537.36'
 
+
 def get_html(url, cookies: dict = None, ua: str = None, return_type: str = None, encoding: str = None, json_headers = None):
     """
     网页请求核心函数
@@ -68,7 +69,7 @@ def get_html(url, cookies: dict = None, ua: str = None, return_type: str = None,
             print("[-]" + errors)
     else:
         print("[-]" + errors)
-        print('[-]Connect Failed! Please check your Proxy or Network!')
+        print('72 [-]Connect Failed! Please check your Proxy or Network!')
     raise Exception('Connect Failed')
 
 def post_html(url: str, query: dict, headers: dict = None) -> requests.Response:
@@ -91,7 +92,7 @@ def post_html(url: str, query: dict, headers: dict = None) -> requests.Response:
         except Exception as e:
             print("[-]Connect retry {}/{}".format(i + 1, configProxy.retry))
             errors = str(e)
-    print("[-]Connect Failed! Please check your Proxy or Network!")
+    print("96 [-]Connect Failed! Please check your Proxy or Network!")
     print("[-]" + errors)
 
 
@@ -468,7 +469,7 @@ def download_file_with_filename(url: str, filename: str, path: str) -> None:
                     try:
                         os.makedirs(path)
                     except:
-                        print(f"[-]Fatal error! Can not make folder '{path}'")
+                        print(f"4 [-]Fatal error! Can not make folder '{path}'")
                         os._exit(0)
                 r = get_html(url=url, return_type='content')
                 if r == '':
@@ -482,7 +483,7 @@ def download_file_with_filename(url: str, filename: str, path: str) -> None:
                     try:
                         os.makedirs(path)
                     except:
-                        print(f"[-]Fatal error! Can not make folder '{path}'")
+                        print(f"5 [-]Fatal error! Can not make folder '{path}'")
                         os._exit(0)
                 r = get_html(url=url, return_type='content')
                 if r == '':
@@ -506,8 +507,8 @@ def download_file_with_filename(url: str, filename: str, path: str) -> None:
         except IOError:
             raise ValueError(f"[-]Create Directory '{path}' failed!")
             return
-    print('[-]Connect Failed! Please check your Proxy or Network!')
-    raise ValueError('[-]Connect Failed! Please check your Proxy or Network!')
+    print('510 [-]Connect Failed! Please check your Proxy or Network!')
+    raise ValueError('511 [-]Connect Failed! Please check your Proxy or Network!')
     return
 
 

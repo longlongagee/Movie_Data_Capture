@@ -99,7 +99,8 @@ def create_folder(json_data):  # 创建文件夹
     # 当演员为空时，location_rule被计算为'/number'绝对路径，导致路径连接忽略第一个路径参数，因此添加./使其始终为相对路径
     path = os.path.join(success_folder, f'./{location_rule.strip()}')
     if not os.path.exists(path):
-        path = escape_path(path, conf.escape_literals())
+        start_path = r'\\' if path.startswith(r'\\') else ''
+        path = start_path + escape_path(path, conf.escape_literals())
         try:
             os.makedirs(path)
         except:
@@ -108,7 +109,7 @@ def create_folder(json_data):  # 创建文件夹
             try:
                 os.makedirs(path)
             except:
-                print(f"[-]Fatal error! Can not make folder '{path}'")
+                print(f"1 [-]Fatal error! Can not make folder '{path}'")
                 os._exit(0)
 
     return os.path.normpath(path)
@@ -120,6 +121,7 @@ def create_folder(json_data):  # 创建文件夹
 def download_file_with_filename(url, filename, path, filepath, json_headers=None):
     conf = config.getInstance()
     configProxy = conf.proxy()
+    print(configProxy.retry)
 
     for i in range(configProxy.retry):
         try:
@@ -127,7 +129,7 @@ def download_file_with_filename(url, filename, path, filepath, json_headers=None
                 try:
                     os.makedirs(path)
                 except:
-                    print(f"[-]Fatal error! Can not make folder '{path}'")
+                    print(f"2 [-]Fatal error! Can not make folder '{path}'")
                     os._exit(0)
             r = get_html(url=url,return_type='content',json_headers=json_headers)
             if r == '':
@@ -145,7 +147,7 @@ def download_file_with_filename(url, filename, path, filepath, json_headers=None
         #     return
         except Exception as e:
             print('[-]Image Download :Error',e)
-    print('[-]Connect Failed! Please check your Proxy or Network!')
+    print('149 [-]Connect Failed! Please check your Proxy or Network!')
     moveFailedFolder(filepath)
     return
 
@@ -281,6 +283,7 @@ def image_download(cover, fanart_path, thumb_path, path, filepath, json_headers=
     full_filepath = os.path.join(path, fanart_path)
     if config.getInstance().download_only_missing_images() and not file_not_exist_or_empty(full_filepath):
         return
+
     if json_headers != None:
         if download_file_with_filename(cover, fanart_path, path, filepath, json_headers['headers']) == 'failed':
             moveFailedFolder(filepath)
@@ -318,7 +321,7 @@ def print_files(path, leak_word, c_word, naming_rule, part, cn_sub, json_data, f
             try:
                 os.makedirs(path)
             except:
-                print(f"[-]Fatal error! can not make folder '{path}'")
+                print(f"3 [-]Fatal error! can not make folder '{path}'")
                 os._exit(0)
 
         old_nfo = None

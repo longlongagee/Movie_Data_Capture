@@ -37,17 +37,17 @@ def search(number, sources: str=None, proxies=None, verify=None, type='adult',
 class Scraping():
     """
     """
-
-    adult_full_sources = ['avsox', 'javbus', 'xcity', 'mgstage', 'madou', 'fc2', 
+    adult_full_sources = ['javdb', 'avsox', 'javbus', 'xcity', 'fc2', 'mgstage', 'madou',
                     'dlsite', 'jav321', 'fanza', 'airav', 'carib', 'mv91',
-                    'gcolle', 'javdb', 'getchu']
+                    'gcolle',  'getchu']
+
     adult_func_mapping = {
+        'fc2': Fc2().scrape,
         'avsox': Avsox().scrape,
         'javbus': Javbus().scrape,
         'xcity': Xcity().scrape,
         'mgstage': Mgstage().scrape,
         'madou': Madou().scrape,
-        'fc2': Fc2().scrape,
         'dlsite': Dlsite().scrape,
         'jav321': Jav321().scrape,
         'fanza': Fanza().scrape,
@@ -118,9 +118,21 @@ class Scraping():
     def searchAdult(self, number, sources):
         sources = self.checkAdultSources(sources, number)
         json_data = {}
+        count = 0
+
+        # 排序网站
+        my_sort = ['fc2']
+        for _ in my_sort:
+            if _ in sources:
+                sources.pop(sources.index(_))
+                sources.insert(0, _)
+
         for source in sources:
             try:
-                print('[+]select', source)
+                count += 1
+                # if count > 8:
+                #     break
+                print('123 [+]select', source)
                 try:
                     data = self.adult_func_mapping[source](number, self)
                     if data == 404:
@@ -210,10 +222,12 @@ class Scraping():
             if not s in self.adult_func_mapping:
                 print('[!] Source Not Exist : ' + s)
                 todel.append(s)
+
         for d in todel:
             print('[!] Remove Source : ' + s)
             sources.remove(d)
         return sources
+
 
     def get_data_state(self, data: dict) -> bool:  # 元数据获取失败检测
         if "title" not in data or "number" not in data:
