@@ -13,7 +13,7 @@ import platform
 import multiprocessing
 from datetime import datetime, timedelta
 from pathlib import Path
-
+import logging
 from opencc import OpenCC
 
 import config
@@ -21,24 +21,27 @@ from ADC_function import file_modification_days, get_html, parallel_download_fil
 from number_parser import get_number
 from core import core_main, core_main_no_net_op, moveFailedFolder
 
+# 初始化日志格式
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
+                    # datefmt='%a, %d %b %Y %H:%M:%S', filename=logfile, filemode='a')
 
 def check_update(local_version):
     htmlcode = ""
     try:
         htmlcode = get_html("https://api.github.com/repos/yoshiko2/Movie_Data_Capture/releases/latest")
     except:
-        print("===== Failed to connect to github =====")
-        print("========== AUTO EXIT IN 60s ===========")
+        logging.info("===== Failed to connect to github =====")
+        logging.info("========== AUTO EXIT IN 60s ===========")
         time.sleep(60)
         os._exit(-1)
     data = json.loads(htmlcode)
     remote = int(data["tag_name"].replace(".", ""))
     local_version = int(local_version.replace(".", ""))
     if local_version < remote:
-        print("[*]" + ("* New update " + str(data["tag_name"]) + " *").center(54))
-        print("[*]" + "↓ Download ↓".center(54))
-        print("[*]https://github.com/yoshiko2/Movie_Data_Capture/releases")
-        print("[*]======================================================")
+        logging.info("[*]" + ("* New update " + str(data["tag_name"]) + " *").center(54))
+        logging.info("[*]" + "↓ Download ↓".center(54))
+        logging.info("[*]https://github.com/yoshiko2/Movie_Data_Capture/releases")
+        logging.info("[*]======================================================")
 
 
 def argparse_function(ver: str) -> typing.Tuple[str, str, str, str, bool, bool]:
@@ -209,7 +212,7 @@ def close_logfile(logdir: str):
     sys.stderr.close()
     log_dir = Path(logdir).resolve()
     if isinstance(filepath, Path):
-        print(f"Log file '{filepath}' saved.")
+        logging.info(f"Log file '{filepath}' saved.")
         assert (filepath.parent.samefile(log_dir))
     # 清理空文件
     for f in log_dir.glob(r'*_err.txt'):
@@ -305,14 +308,14 @@ def close_logfile(logdir: str):
 
 
 def signal_handler(*args):
-    print('[!]Ctrl+C detected, Exit.')
+    logging.info('[!]Ctrl+C detected, Exit.')
     os._exit(9)
 
 
 def sigdebug_handler(*args):
     conf = config.getInstance()
     conf.set_override(f"debug_mode:switch={int(not conf.debug())}")
-    print(f"[!]Debug {('oFF', 'On')[int(conf.debug())]}")
+    logging.info(f"[!]Debug {('oFF', 'On')[int(conf.debug())]}")
 
 
 # 新增失败文件列表跳过处理，及.nfo修改天数跳过处理，提示跳过视频总数，调试模式(-g)下详细被跳过文件，跳过小广告
@@ -345,7 +348,7 @@ def movie_lists(source_folder, regexstr: str) -> typing.List[str]:
         except:
             pass
     if not Path(source_folder).is_dir():
-        print('[-]Source folder not found!')
+        logging.info('[-]Source folder not found!')
         return []
     total = []
     source = Path(source_folder).resolve()
@@ -360,7 +363,7 @@ def movie_lists(source_folder, regexstr: str) -> typing.List[str]:
         if absf in failed_set:
             skip_failed_cnt += 1
             if debug:
-                print('[!]Skip failed movie:', absf)
+                logging.info(f'[!]Skip failed movie:{absf}' )
             continue
         is_sym = full_name.is_symlink()
         if main_mode != 3 and (is_sym or (full_name.stat().st_nlink > 1 and not conf.scan_hardlink())):  # 短路布尔 符号链接不取stat()，因为符号链接可能指向不存在目标
@@ -375,18 +378,18 @@ def movie_lists(source_folder, regexstr: str) -> typing.List[str]:
             nfo = full_name.with_suffix('.nfo')
             if not nfo.is_file():
                 if debug:
-                    print(f"[!]Metadata {nfo.name} not found for '{absf}'")
+                    logging.info(f"[!]Metadata {nfo.name} not found for '{absf}'")
             elif nfo_skip_days > 0 and file_modification_days(nfo) <= nfo_skip_days:
                 skip_nfo_days_cnt += 1
                 if debug:
-                    print(f"[!]Skip movie by it's .nfo which modified within {nfo_skip_days} days: '{absf}'")
+                    logging.info(f"[!]Skip movie by it's .nfo which modified within {nfo_skip_days} days: '{absf}'")
                 continue
         total.append(absf)
 
     if skip_failed_cnt:
-        print(f"[!]Skip {skip_failed_cnt} movies in failed list '{failed_list_txt_path}'.")
+        logging.info(f"[!]Skip {skip_failed_cnt} movies in failed list '{failed_list_txt_path}'.")
     if skip_nfo_days_cnt:
-        print(
+        logging.info(
             f"[!]Skip {skip_nfo_days_cnt} movies in source folder '{source}' who's .nfo modified within {nfo_skip_days} days.")
     if nfo_skip_days <= 0 or not link_mode or main_mode == 3:
         return total
@@ -411,9 +414,9 @@ def movie_lists(source_folder, regexstr: str) -> typing.List[str]:
     for f in rm_list:
         total.remove(f)
         if debug:
-            print(f"[!]Skip file successfully processed within {nfo_skip_days} days: '{f}'")
+            logging.info(f"[!]Skip file successfully processed within {nfo_skip_days} days: '{f}'")
     if len(rm_list):
-        print(
+        logging.info(
             f"[!]Skip {len(rm_list)} movies in success folder '{success_folder}' who's .nfo modified within {nfo_skip_days} days.")
 
     return total
@@ -427,7 +430,7 @@ def create_failed_folder(failed_folder: str):
         try:
             os.makedirs(failed_folder)
         except:
-            print(f"[-]Fatal error! Can not make folder '{failed_folder}'")
+            logging.info(f"6 [-]Fatal error! Can not make folder '{failed_folder}'")
             os._exit(0)
 
 
@@ -440,7 +443,7 @@ def rm_empty_folder(path):
             if not any(files) and not still_has_subdirs and not os.path.samefile(path, current_dir):
                 os.rmdir(current_dir)
                 deleted.add(current_dir)
-                print('[+]Deleting empty folder', current_dir)
+                logging.info(f'[+]Deleting empty folder,{current_dir}' )
         except:
             pass
 
@@ -452,7 +455,7 @@ def create_data_and_move(movie_path: str, zero_op: bool, no_net_op: bool, oCC):
     movie_path = os.path.abspath(movie_path)
 
     if debug is True:
-        print(f"[!] [{n_number}] As Number Processing for '{movie_path}'")
+        logging.info(f"455 [!] [{n_number}] As Number Processing for '{movie_path}'")
         if zero_op:
             return
         if n_number:
@@ -461,12 +464,12 @@ def create_data_and_move(movie_path: str, zero_op: bool, no_net_op: bool, oCC):
             else:
                 core_main(movie_path, n_number, oCC)
         else:
-            print("[-] number empty ERROR")
+            logging.info("[-] number empty ERROR")
             moveFailedFolder(movie_path)
-        print("[*]======================================================")
+        logging.info("[*]======================================================")
     else:
         try:
-            print(f"[!] [{n_number}] As Number Processing for '{movie_path}'")
+            logging.info(f"[!] [{n_number}] As Number Processing for '{movie_path}'")
             if zero_op:
                 return
             if n_number:
@@ -476,40 +479,39 @@ def create_data_and_move(movie_path: str, zero_op: bool, no_net_op: bool, oCC):
                     core_main(movie_path, n_number, oCC)
             else:
                 raise ValueError("number empty")
-            print("[*]======================================================")
+            logging.info("[*]======================================================")
         except Exception as err:
-            print(f"[-] [{movie_path}] ERROR:")
-            print('[-]', err)
+            logging.error(f"[-] [{movie_path}] ERROR: {err}")
 
-            try:
-                moveFailedFolder(movie_path)
-            except Exception as err:
-                print('[!]', err)
+        try:
+            moveFailedFolder(movie_path)
+        except Exception as err:
+            logging.error(f'[!],{err}', )
 
 
 def create_data_and_move_with_custom_number(file_path: str, custom_number, oCC):
     conf = config.getInstance()
     file_name = os.path.basename(file_path)
     try:
-        print("[!] [{1}] As Number Processing for '{0}'".format(file_path, custom_number))
+        logging.info("494 [!] [{1}] As Number Processing for '{0}'".format(file_path, custom_number))
         if custom_number:
             core_main(file_path, custom_number, oCC)
         else:
-            print("[-] number empty ERROR")
-        print("[*]======================================================")
+            logging.info("[-] number empty ERROR")
+        logging.info("[*]======================================================")
     except Exception as err:
-        print("[-] [{}] ERROR:".format(file_path))
-        print('[-]', err)
+        logging.info("2 [-] [{}] ERROR:".format(file_path))
+        logging.error(f'[!],{err}', )
 
         if conf.link_mode():
-            print("[-]Link {} to failed folder".format(file_path))
+            logging.info("[-]Link {} to failed folder".format(file_path))
             os.symlink(file_path, os.path.join(conf.failed_folder(), file_name))
         else:
             try:
-                print("[-]Move [{}] to failed folder".format(file_path))
+                logging.info("[-]Move [{}] to failed folder".format(file_path))
                 shutil.move(file_path, os.path.join(conf.failed_folder(), file_name))
             except Exception as err:
-                print('[!]', err)
+                logging.error(f'[!],{err}', )
 
 
 def main(args: tuple) -> Path:
@@ -518,7 +520,7 @@ def main(args: tuple) -> Path:
     main_mode = conf.main_mode()
     folder_path = ""
     if main_mode not in (1, 2, 3):
-        print(f"[-]Main mode must be 1 or 2 or 3! You can run '{os.path.basename(sys.argv[0])} --help' for more help.")
+        logging.info(f"[-]Main mode must be 1 or 2 or 3! You can run '{os.path.basename(sys.argv[0])} --help' for more help.")
         os._exit(4)
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -531,25 +533,25 @@ def main(args: tuple) -> Path:
     platform_total = str(
         ' - ' + platform.platform() + ' \n[*] - ' + platform.machine() + ' - Python-' + platform.python_version())
 
-    print('[*]================= Movie Data Capture =================')
-    print('[*]' + version.center(54))
-    print('[*]======================================================')
-    print('[*]' + platform_total)
-    print('[*]======================================================')
-    print('[*] - 严禁在墙内宣传本项目 - ')
-    print('[*]======================================================')
+    logging.info('[*]================= Movie Data Capture =================')
+    logging.info('[*]' + version.center(54))
+    logging.info('[*]======================================================')
+    logging.info('[*]' + platform_total)
+    logging.info('[*]======================================================')
+    logging.info('[*] - 严禁在墙内宣传本项目 - ')
+    logging.info('[*]======================================================')
 
     start_time = time.time()
-    print('[+]Start at', time.strftime("%Y-%m-%d %H:%M:%S"))
+    logging.info(f'[+]Start at {time.strftime("%Y-%m-%d %H:%M:%S")}')
 
-    print(f"[+]Load Config file '{conf.ini_path}'.")
+    logging.info(f"[+]Load Config file '{conf.ini_path}'.")
     if conf.debug():
-        print('[+]Enable debug')
+        logging.info('[+]Enable debug')
     if conf.link_mode() in (1, 2):
-        print('[!]Enable {} link'.format(('soft', 'hard')[conf.link_mode() - 1]))
+        logging.info('[!]Enable {} link'.format(('soft', 'hard')[conf.link_mode() - 1]))
     if len(sys.argv) > 1:
-        print('[!]CmdLine:', " ".join(sys.argv[1:]))
-    print('[+]Main Working mode ## {}: {} ## {}{}{}'
+        logging.info(f'[!]CmdLine: {" ".join(sys.argv[1:])}', )
+    logging.info('[+]Main Working mode ## {}: {} ## {}{}{}'
           .format(*(main_mode, ['Scraping', 'Organizing', 'Scraping in analysis folder'][main_mode - 1],
                     "" if not conf.multi_threading() else ", multi_threading on",
                     "" if conf.nfo_skip_days() == 0 else f", nfo_skip_days={conf.nfo_skip_days()}",
@@ -561,7 +563,7 @@ def main(args: tuple) -> Path:
         try:
             check_update(version)
         except Exception as e:
-            print('[-]Update check failed!',e)
+            logging.error(f'Update check failed,{e}')
 
     create_failed_folder(conf.failed_folder())
 
@@ -577,22 +579,21 @@ def main(args: tuple) -> Path:
     for k, v in map_tab:
         if v.exists():
             if file_modification_days(str(v)) >= conf.mapping_table_validity():
-                print("[+]Mapping Table Out of date! Remove", str(v))
+                logging.info(f"[+]Mapping Table Out of date! Remove{str(v)}")
                 os.remove(str(v))
     try:
         res = parallel_download_files(((k, v) for k, v in map_tab if not v.exists()))
         for i, fp in enumerate(res, start=1):
             if fp and len(fp):
-                print(f"[+] [{i}/{len(res)}] Mapping Table Downloaded to {fp}")
+                logging.info(f"[+] [{i}/{len(res)}] Mapping Table Downloaded to {fp}")
             else:
-                print(f"[-] [{i}/{len(res)}] Mapping Table Download failed")
+                logging.info(f"[-] [{i}/{len(res)}] Mapping Table Download failed")
     except Exception as e:
-        print("[!] ==================== ERROR ====================")
-        print("[!] " + "Mapping Table Download FAILED".center(47))
-        print("[!] " + "无法连接github".center(47))
-        print("[!] " + "请过几小时再试试".center(47))
-        print("[!]", e)
-        print("[-] " + "------ AUTO EXIT AFTER 30s !!! ------ ".center(47))
+        logging.info("[!] ==================== ERROR ====================")
+        logging.info("[!] " + "Mapping Table Download FAILED".center(47))
+        logging.info("[!] " + "无法连接github".center(47))
+        logging.info("[!] " + "请过几小时再试试".center(47))
+        logging.info("[-] " + "------ AUTO EXIT AFTER 30s !!! ------ ".center(47))
         time.sleep(30)
         os._exit(-1)
 
@@ -606,7 +607,7 @@ def main(args: tuple) -> Path:
         oCC = None if ccm == 0 else OpenCC('t2s' if ccm == 1 else 's2t')
 
     if not single_file_path == '':  # Single File
-        print('[+]==================== Single File =====================')
+        logging.info('[+]==================== Single File =====================')
         if custom_number == '':
             create_data_and_move_with_custom_number(single_file_path,
                                                     get_number(conf.debug(), os.path.basename(single_file_path)), oCC)
@@ -621,8 +622,8 @@ def main(args: tuple) -> Path:
 
         count = 0
         count_all = str(len(movie_list))
-        print('[+]Find', count_all, 'movies.')
-        print('[*]======================================================')
+        logging.info(f'[+]Find {count_all} movies.')
+        logging.info('[*]======================================================')
         stop_count = conf.stop_counter()
         if stop_count < 1:
             stop_count = 999999
@@ -632,11 +633,11 @@ def main(args: tuple) -> Path:
         for movie_path in movie_list:  # 遍历电影列表 交给core处理
             count = count + 1
             percentage = str(count / int(count_all) * 100)[:4] + '%'
-            print('[!] {:>30}{:>21}'.format('- ' + percentage + ' [' + str(count) + '/' + count_all + '] -',
+            logging.info('[!] {:>30}{:>21}'.format('- ' + percentage + ' [' + str(count) + '/' + count_all + '] -',
                                             time.strftime("%H:%M:%S")))
             create_data_and_move(movie_path, zero_op, no_net_op, oCC)
             if count >= stop_count:
-                print("[!]Stop counter triggered!")
+                logging.info("[!]Stop counter triggered!")
                 break
             sleep_seconds = random.randint(conf.sleep(), conf.sleep() + 2)
             time.sleep(sleep_seconds)
@@ -649,10 +650,10 @@ def main(args: tuple) -> Path:
 
     end_time = time.time()
     total_time = str(timedelta(seconds=end_time - start_time))
-    print("[+]Running time", total_time[:len(total_time) if total_time.rfind('.') < 0 else -3],
-          " End at", time.strftime("%Y-%m-%d %H:%M:%S"))
+    logging.info(f"[+]Running time {total_time[:len(total_time) if total_time.rfind('.') < 0 else -3]}")
+    logging.info(f"""End at {time.strftime("%Y-%m-%d %H:%M:%S")}""" )
 
-    print("[+]All finished!!!")
+    logging.info("[+]All finished!!!")
 
     return close_logfile(logdir)
 
@@ -697,7 +698,7 @@ if __name__ == '__main__':
                 if all(isinstance(v, int) for v in 分析结果元组):
                     剩余个数 = 扫描电影数 - 已处理
                     总用时 = timedelta(seconds = time.time() - app_start)
-                    print(f'All movies:{扫描电影数}  processed:{已处理}  successes:{完成数}  remain:{剩余个数}' +
+                    logging.info(f'All movies:{扫描电影数}  processed:{已处理}  successes:{完成数}  remain:{剩余个数}' +
                         '  Elapsed time {}'.format(
                         period(总用时, "{d} day {h}:{m:02}:{s:02}") if 总用时.days == 1
                             else period(总用时, "{d} days {h}:{m:02}:{s:02}") if 总用时.days > 1
@@ -705,7 +706,7 @@ if __name__ == '__main__':
                     if 剩余个数 == 0:
                         break
                     下次运行 = datetime.now() + timedelta(seconds=再运行延迟)
-                    print(f'Next run time: {下次运行.strftime("%H:%M:%S")}, rerun_delay={再运行延迟}, press Ctrl+C stop run.')
+                    logging.info(f'Next run time: {下次运行.strftime("%H:%M:%S")}, rerun_delay={再运行延迟}, press Ctrl+C stop run.')
                     time.sleep(再运行延迟)
                 else:
                     break

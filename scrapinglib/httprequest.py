@@ -39,7 +39,7 @@ def get(url: str, cookies=None, ua: str = None, extra_headers=None, return_type:
         print("[-]" + errors)
     else:
         print("[-]" + errors)
-        print('[-]Connect Failed! Please check your Proxy or Network!')
+        print('43 [-]Connect Failed! Please check your Proxy or Network!')
     raise Exception('Connect Failed')
 
 
@@ -70,7 +70,7 @@ def post(url: str, data: dict, files=None, cookies=None, ua: str = None, return_
         print("[-]" + errors)
     else:
         print("[-]" + errors)
-        print('[-]Connect Failed! Please check your Proxy or Network!')
+        print('42 [-]Connect Failed! Please check your Proxy or Network!')
     raise Exception('Connect Failed')
 
 
