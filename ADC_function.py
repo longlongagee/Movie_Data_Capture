@@ -406,7 +406,13 @@ def file_modification_days(filename: str) -> int:
 
 
 def file_not_exist_or_empty(filepath) -> bool:
-    return not os.path.isfile(filepath) or os.path.getsize(filepath) == 0
+    isfile = os.path.isfile(filepath)
+    try:
+        is_empty = os.path.getsize(filepath) == 0
+    except Exception as e:
+        is_empty = True
+
+    return not isfile or is_empty
 
 
 def is_japanese(raw: str) -> bool:

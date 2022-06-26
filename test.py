@@ -9,8 +9,10 @@
 """
 import requests
 import re
+import os
 
-a = "-----"
-a = a.replace('-', '')
-
-print(a)
+with open('exist.txt', 'r') as f:
+    data = f.readlines()
+    for line in data:
+        line_list = line.split('\\')
+        print(line_list[-2])
