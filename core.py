@@ -557,7 +557,8 @@ def paste_file_to_folder(filepath, path, multi_part, number, part, leak_word, c_
 
             with open('exist.txt', "a+") as f:
                 f.write(filepath_obj + '\n')
-            raise FileExistsError('553 File Exists on destination path, we will never overwriting.')
+
+            raise FileExistsError(f'File Exists, DELETED:{filepath_obj}')
 
         link_mode = config.getInstance().link_mode()
         # 如果link_mode 1: 建立软链接 2: 硬链接优先、无法建立硬链接再尝试软链接。
