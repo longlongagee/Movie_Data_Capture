@@ -550,7 +550,15 @@ def paste_file_to_folder(filepath, path, multi_part, number, part, leak_word, c_
         # 任何情况下都不要覆盖，以免遭遇数据源或者引擎错误导致所有文件得到同一个number，逐一
         # 同名覆盖致使全部文件损失且不可追回的最坏情况
         if os.path.exists(targetpath):
-            raise FileExistsError('File Exists on destination path, we will never overwriting.')
+            filepath_obj_size = os.path.getsize(filepath_obj)
+            target_obj_size = os.path.getsize(targetpath)
+            if filepath_obj_size == target_obj_size:
+                os.remove(filepath_obj)
+
+            with open('exist.txt', "a+") as f:
+                f.write(filepath_obj + '\n')
+            raise FileExistsError('553 File Exists on destination path, we will never overwriting.')
+
         link_mode = config.getInstance().link_mode()
         # 如果link_mode 1: 建立软链接 2: 硬链接优先、无法建立硬链接再尝试软链接。
         # 移除原先soft_link=2的功能代码，因默认记录日志，已经可追溯文件来源
@@ -607,7 +615,7 @@ def paste_file_to_folder_mode2(filepath, path, multi_part, number, part, leak_wo
     houzhui = filepath_obj.suffix
     targetpath = os.path.join(path, f"{number}{part}{leak_word}{c_word}{hack_word}{houzhui}")
     if os.path.exists(targetpath):
-        raise FileExistsError('File Exists on destination path, we will never overwriting.')
+        raise FileExistsError('610 File Exists on destination path, we will never overwriting.')
     try:
         link_mode = config.getInstance().link_mode()
         create_softlink = False

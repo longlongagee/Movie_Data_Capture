@@ -14,6 +14,41 @@ G_conf_override = {
 }
 
 
+class RenameMp4:
+    def __init__(self, source_fold):
+        self.source_fold = source_fold
+
+    def _find_mp4(self, fl):
+        fl = os.listdir(fl)
+        new_list = []
+        regex = re.compile(r'.*?(\.mp4|\.avi|\.mkv)')
+        for file_name in fl:
+            if regex.search(file_name):
+                new_list.append(file_name)
+        return new_list
+
+    def _rename(self,source_path, new_name, old_name):
+        if not new_name == old_name:
+            try:
+                print('%s ——> %s' % (old_name, new_name))
+                os.rename(os.path.join(source_path, old_name), os.path.join(source_path, new_name))
+            except OSError as e:
+                print(e)
+
+    def run(self):
+        file_list = self._find_mp4(self.source_fold)
+        for file_name in file_list:
+            res = re.search(r'([-_])(\d)(\.mp4|\.avi|\.mkv)', file_name)
+            if res:
+                new_name = file_name.replace(f'{(res.group(1))}{(res.group(2))}', f'-CD{res.group(2)}')
+                self._rename(self.source_fold, new_name, file_name)
+
+            res2 = re.search(r'([-_]part|[-_]Part)(\d)(\.mp4|\.avi|\.mkv)', file_name)
+            if res2:
+                new_name2 = file_name.replace(f'{(res2.group(1))}{(res2.group(2))}', f'-CD{res2.group(2)}')
+                self._rename(self.source_fold, new_name2, file_name)
+
+
 def getInstance():
     if isinstance(G_conf_override[0], Config):
         return G_conf_override[0]
@@ -169,7 +204,13 @@ class Config:
             self._exit("common:main_mode")
 
     def source_folder(self) -> str:
-        return self.conf.get("common", "source_folder")
+        source_fold = self.conf.get("common", "source_folder")
+        rename = self.conf.get("common", "rename")
+        if rename:
+            rn = RenameMp4(source_fold)
+            rn.run()
+
+        return source_fold
 
     def failed_folder(self) -> str:
         return self.conf.get("common", "failed_output_folder")

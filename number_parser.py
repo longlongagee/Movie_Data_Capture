@@ -3,6 +3,7 @@ import re
 import sys
 import config
 import typing
+import logging
 
 G_spat = re.compile(
     "^\w+\.(cc|com|net|me|club|jp|tv|xyz|biz|wiki|info|tw|us|de)@|^22-sht\.me|"
@@ -39,17 +40,29 @@ def get_number(debug: bool, file_path: str) -> str:
     """
     filepath = os.path.basename(file_path)
     # debug True 和 False 两块代码块合并，原因是此模块及函数只涉及字符串计算，没有IO操作，debug on时输出导致异常信息即可
+
+    def filter_len(file_number):
+        if len(file_number) < 5:
+            logging.info(f" 太短了:{file_number}")
+            return None
+
+        for _ in ['000K_', '1080P', '480P', '720P','360P']:
+            if _ in file_number:
+                return None
+
+        return file_number
+
     try:
         file_number = get_number_by_dict(filepath)
 
         if file_number:
-            return file_number
+            return filter_len(file_number)
         elif '字幕组' in filepath or 'SUB' in filepath.upper() or re.match(r'[\u30a0-\u30ff]+', filepath):
             filepath = G_spat.sub("", filepath)
             filepath = re.sub("\[.*?\]","",filepath)
             filepath = filepath.replace(".chs", "").replace(".cht", "")
             file_number = str(re.findall(r'(.+?)\.', filepath)).strip(" [']")
-            return file_number
+            return filter_len(file_number)
         elif '-' in filepath or '_' in filepath or ' ' in filepath:  # 普通提取番号 主要处理包含减号-和_的番号
             filepath = G_spat.sub("", filepath)
             filename = str(re.sub("\[\d{4}-\d{1,2}-\d{1,2}\] - ", "", filepath))  # 去除文件名中时间
@@ -58,7 +71,7 @@ def get_number(debug: bool, file_path: str) -> str:
                 filename = lower_check.replace('ppv', '').replace(' ', '-').replace('--', '-').replace('_', '-').upper()
             filename = re.sub("[-_]cd\d{1,2}", "", filename, flags=re.IGNORECASE)
             if not re.search("-|_", filename): # 去掉-CD1之后再无-的情况，例如n1012-CD1.wmv
-                return str(re.search(r'\w+', filename[:filename.find('.')], re.A).group())
+                return filter_len(str(re.search(r'\w+', filename[:filename.find('.')], re.A).group()))
 
             # 不连续多个 -
             result = re.findall(r'\w+[-_]\w+', filename, re.A)
@@ -86,19 +99,25 @@ def get_number(debug: bool, file_path: str) -> str:
             file_number = re.sub("(-|_)c$", "", file_number, flags=re.IGNORECASE)
             if re.search("\d+ch$", file_number, flags=re.I):
                 file_number = file_number[:-2]
-            return file_number.upper()
+
+            # 另一种FC2
+            # if 'FC2' in file_number:
+            #     file_number = file_number.replace('FC2-', 'FC2-PPV-')
+
+            return filter_len(file_number.upper())
+
         else:  # 提取不含减号-的番号，FANZA CID
             # 欧美番号匹配规则
             oumei = re.search(r'[a-zA-Z]+\.\d{2}\.\d{2}\.\d{2}', filepath)
             if oumei:
-                return oumei.group()
+                return filter_len(oumei.group())
             try:
                 return str(
                     re.findall(r'(.+?)\.',
                                str(re.search('([^<>/\\\\|:""\\*\\?]+)\\.\\w+$', filepath).group()))).strip(
                     "['']").replace('_', '-')
             except:
-                return str(re.search(r'(.+?)\.', filepath)[0])
+                return filter_len(str(re.search(r'(.+?)\.', filepath)[0]))
     except Exception as e:
         if debug:
             print(f'[-]Number Parser exception: {e} [{file_path}]')
@@ -162,6 +181,7 @@ G_TAKE_NUM_RULES = {
     r'\bpm[a-z]?-?\d{2,}':pm,
     '糖心Vlog': lambda x: str(re.search(r'(.*?)\.\w+', x).groups()[0]).rsplit('_', 1)[0].strip(' #'),
     'AV9898': av9898,
+    # '10musume': lambda x: '10musume' + str(re.search(r'\d{}6', x).groups()[0]),
 }
 
 
@@ -376,10 +396,21 @@ if __name__ == "__main__":
     \\NAS\smb\videos\AVI三次元\(E-BODY)(EBOD-578)お屋敷のいたるところで献身的おっぱいサービス！Kcup超々セクシーランジェリーメイド 深田ナナ.mp4
     \\NAS\smb\vAAXV.a234=XYZ-FC2-1945430.MP4
     """
-    #
-    # for case in cases.split('\n'):
-    #     case = case.strip()
-    #     if case:
-    #         print(get_number(True, case))
-    print(get_number(True, 'FC2 PPV 1526615 精子を搾り取って激しいバキュームフェラ！エロいフェラ顔が大好き♥ごっくんと激しいお掃除あり【レビュー特典あり】.mp4'))
+    import os
+
+    def _find_mp4(fl):
+        fl = os.listdir(fl)
+        new_list = []
+        regex = re.compile(r'.*?(\.mp4|\.avi|\.mkv)')
+        for file_name in fl:
+            if regex.search(file_name):
+                new_list.append(file_name)
+        return new_list
+
+
+    cases = _find_mp4(r'\\NAS\smb\videos\待定')
+    for case in cases:
+        case = case.strip()
+        if case:
+            print(case, '==>', get_number(False, case))
 

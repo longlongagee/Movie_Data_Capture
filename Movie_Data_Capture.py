@@ -11,6 +11,7 @@ import urllib3
 import signal
 import platform
 import multiprocessing
+import threading
 from datetime import datetime, timedelta
 from pathlib import Path
 import logging
@@ -22,7 +23,7 @@ from number_parser import get_number
 from core import core_main, core_main_no_net_op, moveFailedFolder
 
 # 初始化日志格式
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
                     # datefmt='%a, %d %b %Y %H:%M:%S', filename=logfile, filemode='a')
 
 def check_update(local_version):
@@ -569,9 +570,6 @@ def main(args: tuple) -> Path:
 
     # Download Mapping Table, parallel version
     def fmd(f) -> typing.Tuple[str, Path]:
-        """
-
-        """
         return ('https://raw.githubusercontent.com/yoshiko2/Movie_Data_Capture/master/MappingTable/' + f,
                 Path.home() / '.local' / 'share' / 'mdc' / f)
 
@@ -633,8 +631,7 @@ def main(args: tuple) -> Path:
         for movie_path in movie_list:  # 遍历电影列表 交给core处理
             count = count + 1
             percentage = str(count / int(count_all) * 100)[:4] + '%'
-            logging.info('[!] {:>30}{:>21}'.format('- ' + percentage + ' [' + str(count) + '/' + count_all + '] -',
-                                            time.strftime("%H:%M:%S")))
+            logging.info('[!] {:>30}{:>21}'.format('- ' + percentage + ' [' + str(count) + '/' + count_all + '] -', time.strftime("%H:%M:%S")))
             create_data_and_move(movie_path, zero_op, no_net_op, oCC)
             if count >= stop_count:
                 logging.info("[!]Stop counter triggered!")
